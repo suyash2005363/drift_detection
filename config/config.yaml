@@ -1,0 +1,3 @@
+reference_data_path: data/reference/reference.csv
+incoming_data_folder: data/income
+model_path: models/model.pkl
