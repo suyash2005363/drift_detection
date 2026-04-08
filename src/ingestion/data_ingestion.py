@@ -1,46 +1,36 @@
 import pandas as pd
-import yaml
 import os
 
-
 class DataIngestion:
-
-    def __init__(self, config_path):
-
-        with open(config_path, "r") as file:
-            config = yaml.safe_load(file)
-
-        self.reference_path = config["reference_data_path"]
-        self.incoming_folder = config["incoming_data_folder"]
+    def __init__(self):
+        # ✅ Updated paths based on your structure
+        self.reference_path = "data/reference/reference_dataset.csv"
+        self.batch_paths = [
+            "data/income/batch_1.csv",
+            "data/income/batch_2.csv",
+            "data/income/batch_3.csv"
+        ]
 
     def load_reference_data(self):
+        """Load reference dataset"""
+        if not os.path.exists(self.reference_path):
+            raise FileNotFoundError(f"Reference dataset not found at {self.reference_path}")
+        
+        df = pd.read_csv(self.reference_path)
+        print("✅ Reference data loaded")
+        return df
 
-        print("\nLoading reference dataset...")
-
-        reference_data = pd.read_csv(self.reference_path)
-
-        print("Reference data shape:", reference_data.shape)
-
-        return reference_data
-
-    def load_batches(self):
-
-        print("\nLoading incoming batches...")
-
-        batch_files = sorted(os.listdir(self.incoming_folder))
-
+    def load_batch_data(self):
+        """Load all batch datasets"""
         batches = []
 
-        for file in batch_files:
+        for path in self.batch_paths:
+            if not os.path.exists(path):
+                print(f"⚠️ Warning: {path} not found, skipping")
+                continue
 
-            if file.endswith(".csv"):
-
-                path = os.path.join(self.incoming_folder, file)
-
-                data = pd.read_csv(path)
-
-                batches.append((file, data))
-
-        print(f"{len(batches)} batches loaded")
+            df = pd.read_csv(path)
+            batches.append(df)
+            print(f"✅ Loaded batch: {path}")
 
         return batches

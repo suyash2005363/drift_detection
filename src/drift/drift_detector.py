@@ -1,53 +1,38 @@
-from scipy.stats import ks_2samp
 import pandas as pd
-
+from scipy.stats import ks_2samp
 
 class DriftDetector:
+    def __init__(self, threshold=0.05):
+        self.threshold = threshold
 
-    def __init__(self, reference_data, incoming_data):
+    def detect_drift(self, reference_df, current_df):
+        """
+        Detect drift between reference and current dataset
+        using Kolmogorov-Smirnov test
+        """
+        drift_report = {}
 
-        self.reference_data = reference_data
-        self.incoming_data = incoming_data
+        # Ensure same columns
+        common_columns = list(set(reference_df.columns).intersection(set(current_df.columns)))
 
-    def detect_drift(self):
+        for column in common_columns:
+            try:
+                # Only numeric columns
+                if pd.api.types.is_numeric_dtype(reference_df[column]):
 
-        drift_results = {}
+                    stat, p_value = ks_2samp(
+                        reference_df[column],
+                        current_df[column]
+                    )
 
-        for column in self.reference_data.columns:
+                    drift_report[column] = {
+                        "p_value": float(p_value),
+                        "drift_detected": bool(p_value < self.threshold)
+                    }
 
-            if pd.api.types.is_numeric_dtype(self.reference_data[column]):
-
-                stat, p_value = ks_2samp(
-                    self.reference_data[column],
-                    self.incoming_data[column]
-                )
-
-                drift = p_value < 0.05
-
-                drift_results[column] = {
-                    "p_value": p_value,
-                    "drift_detected": drift
+            except Exception as e:
+                drift_report[column] = {
+                    "error": str(e)
                 }
 
-        return drift_results
-
-    def run(self):
-
-        print("\nRunning Drift Detection...\n")
-
-        results = self.detect_drift()
-
-        drift_count = 0
-
-        for feature, result in results.items():
-
-            print(f"Feature: {feature}")
-            print(f"P-value: {result['p_value']:.5f}")
-
-            if result["drift_detected"]:
-                print("Drift Detected\n")
-                drift_count += 1
-            else:
-                print("No Drift\n")
-
-        print("Total features with drift:", drift_count)
+        return drift_report
