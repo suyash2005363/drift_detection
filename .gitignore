@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+
+# datasets
+*.csv
+*.xlsx
+
+# models
+*.pkl
+*.joblib
+
+# logs
+*.log
+
+# system files
+.DS_Store
