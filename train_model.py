@@ -15,7 +15,7 @@ print("🚀 Starting training pipeline...")
 # LOAD DATA
 # -------------------------------
 
-data_path = os.path.join("data", "reference", "reference_dataset.csv")
+data_path = os.path.join("data", "adult.csv")
 
 df = pd.read_csv(data_path)
 
