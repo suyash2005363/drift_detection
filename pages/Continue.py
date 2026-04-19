@@ -5,7 +5,7 @@ import joblib
 st.title("🤖 Prediction Page")
 
 # Load model
-model = joblib.load("model.pkl")
+model = joblib.load("Models/model.pkl")
 
 st.subheader("Enter Input Features:")
 
