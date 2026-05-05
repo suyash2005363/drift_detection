@@ -1,9 +1,14 @@
+from dotenv import load_dotenv
+load_dotenv()
 import streamlit as st
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
 
 from src.drift.drift_detector import DriftDetector
+
+# ✅ NEW: GenAI
+from src.genai.explanation import generate_explanation
 
 st.set_page_config(page_title="Drift Monitoring", layout="wide")
 
@@ -83,6 +88,25 @@ if username == "admin" and password == "admin123":
             st.error(f"⚠️ Drift detected in {drift_count} features!")
         else:
             st.success("✅ No drift detected")
+
+        st.divider()
+
+        # -------------------------------
+        # 🤖 GENAI EXPLANATION (NEW)
+        # -------------------------------
+
+        try:
+            ai_explanation = generate_explanation(
+                result,
+                drift_percent,
+                0.7  # fallback confidence (UI doesn’t compute it yet)
+            )
+
+            st.subheader("🤖 AI Insight Report")
+            st.write(ai_explanation)
+
+        except Exception as e:
+            st.warning(f"GenAI failed: {e}")
 
         st.divider()
 
