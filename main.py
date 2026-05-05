@@ -1,13 +1,13 @@
 from dotenv import load_dotenv
 load_dotenv()
+
 from src.ingestion.data_ingestion import DataIngestion
 from src.validation.data_validation import DataValidation
 from src.drift.drift_detector import DriftDetector
-from src.monitoring.prediction_monitor import PredictionMonitor
 from src.monitoring.confidence_monitor import ConfidenceMonitor
 from src.alert.alert_system import AlertSystem
 
-# ✅ NEW: GenAI import
+# GenAI
 from src.genai.explanation import generate_explanation
 
 import yaml
@@ -16,27 +16,44 @@ import time
 
 CONFIG_PATH = "config/config.yaml"
 
+
 def log_stage(stage_name):
     print("\n----------------------------------")
     print(f"PIPELINE STAGE: {stage_name}")
     print(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print("----------------------------------")
 
+
 def main():
 
     print("\nStarting Drift Detection Pipeline\n")
 
-    ingestion = DataIngestion(CONFIG_PATH)
+    # -------------------------------
+    # INGESTION
+    # -------------------------------
+    ingestion = DataIngestion()
 
     reference_data = ingestion.load_reference_data()
-    batches = ingestion.load_batches()
+    batches = ingestion.load_batch_data()
 
+    # -------------------------------
+    # CONFIG
+    # -------------------------------
     with open(CONFIG_PATH, "r") as file:
         config = yaml.safe_load(file)
 
     model_path = config["model_path"]
 
-    for batch_name, incoming_data in batches:
+    # -------------------------------
+    # LOOP THROUGH BATCHES
+    # -------------------------------
+    for i, batch in enumerate(batches):
+
+        if isinstance(batch, tuple):
+            batch_name, incoming_data = batch
+        else:
+            batch_name = f"batch_{i+1}"
+            incoming_data = batch
 
         print("\n==============================")
         print(f"Processing {batch_name}")
@@ -51,8 +68,8 @@ def main():
         # -------------------------------
         # DRIFT DETECTION
         # -------------------------------
-        drift = DriftDetector(reference_data, incoming_data)
-        drift_results = drift.detect_drift()
+        drift = DriftDetector()
+        drift_results = drift.detect_drift(reference_data, incoming_data)
 
         drift_count = sum(
             1 for result in drift_results.values()
@@ -62,23 +79,19 @@ def main():
         total_features = len(drift_results)
         drift_percentage = (drift_count / total_features) * 100
 
-        drift.run()
-
         # -------------------------------
-        # MONITORING
+        # CONFIDENCE MONITORING (SAFE)
         # -------------------------------
-        prediction_monitor = PredictionMonitor(
-            model_path,
-            reference_data,
-            incoming_data
-        )
-        prediction_monitor.run()
+        try:
+            confidence_monitor = ConfidenceMonitor(
+                model_path,
+                incoming_data
+            )
+            confidence = confidence_monitor.run()
 
-        confidence_monitor = ConfidenceMonitor(
-            model_path,
-            incoming_data
-        )
-        confidence = confidence_monitor.run()
+        except Exception as e:
+            print("\n⚠️ Confidence monitoring failed:", e)
+            confidence = 0.7  # fallback
 
         # -------------------------------
         # ALERT SYSTEM
@@ -91,7 +104,7 @@ def main():
         alert.run()
 
         # -------------------------------
-        # 🤖 GENAI EXPLANATION (NEW)
+        # 🤖 GENAI EXPLANATION
         # -------------------------------
         try:
             ai_explanation = generate_explanation(
